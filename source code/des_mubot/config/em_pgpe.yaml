@@ -1,0 +1,18 @@
+mubot: #namespace
+        
+        # PGPE Parameters
+
+        n_rollout:  50         # Number of rollouts per episode
+        n_episodes: 40        # Number of episodes
+        n_trial: 9
+
+        # Robot Environment Parameters
+        max_distance: 2.0 # Maximum distance allowed for the RobotCube
+        max_sim_time: 6.1
+        joint_number: 2      #number of active joint = segment number -2
+        select: 25
+
+#        lr: [30,30,30,     30,30,30,     30,30,30,        30,     30]                # Learning Rates
+#        lr: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#        n_params: 11            # Number of weights
+
