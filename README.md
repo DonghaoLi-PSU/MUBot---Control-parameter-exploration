@@ -1,2 +1,6 @@
 # MUBot---Control-parameter-exploration
-Mathematical model + Gazebo/ROS simulation platform exploring how design and hydrodynamic parameters affect optimized swimming in fish-inspired robots (EPHE reinforcement learning).
+Simulation and reinforcement-learning-based gait optimization for μBot — a Magnetic, Modular, Undulatory Robot template for fish-inspired swimming.
+
+This repository contains the mathematical model, hydrodynamics simulation, and gait optimization code accompanying our paper:
+
+D. Li, H. Deng, Y. E. Bayiz, B. Cheng, "Effects of Design and Hydrodynamic Parameters on Optimized Swimming for Simulated, Fish-inspired Robots," submitted to IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), 2022.
