@@ -5,8 +5,6 @@
  *
  * Created by Donghao Li
  * Update time: March 23rd 2021
- *
- *
 */
 #ifndef __GAZEBO_ACTUATOR_PLUGIN_HH__
 #define __GAZEBO_ACTUATOR_PLUGIN_HH__
@@ -14,6 +12,8 @@
 #include "gazebo/common/common.hh"
 #include "gazebo/physics/physics.hh"
 #include "gazebo/gazebo.hh"
+#include <array>
+#include <cstdio>
 #include <math.h>
 #include <iomanip>
 #include <sstream>
@@ -28,136 +28,211 @@ namespace gazebo
     class ActuatorPlugin : public ModelPlugin
     {
         public: ActuatorPlugin(){};
-    
-        public: virtual void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
+
+        public: virtual void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) override
         {
             this->model = _model;
+
+            // Configurable output/input locations (defaults preserve
+            // original hardcoded behaviour).
+            this->resultPath = "./result";
+            this->dataPath   = "./result/data";
+            if (_sdf && _sdf->HasElement("result_path"))
+                this->resultPath = _sdf->Get<std::string>("result_path");
+            if (_sdf && _sdf->HasElement("data_path"))
+                this->dataPath = _sdf->Get<std::string>("data_path");
+
             this->updateConnection = event::Events::ConnectWorldUpdateBegin(
                     boost::bind(&ActuatorPlugin::OnUpdate, this));
         };
-        public: virtual void Init(){};
-    
+
+        public: virtual void Init() override
+        {
+            // Cache joint pointers once instead of re-resolving them from
+            // this->model->GetJoints()[i] on every physics tick.
+            const int NoA = 2;
+            const int s_num = NoA + 2;
+            for (int i = 0; i < s_num - 1; i++)
+            {
+                this->joint[i] = this->model->GetJoints()[i];
+            }
+        };
+
         private: void OnUpdate()
         {
             common::Time currTime = this->model->GetWorld()->SimTime();
-            common::Time stepTime = currTime - this->prevUpdateTime;
             this->prevUpdateTime = currTime;
             const double simu_time = this->model->GetWorld()->SimTime().Double();
             const double one_step = 0.00025;
             const double simu_step = simu_time*(1./one_step)*10.0;  const int record_step = int(4*(1./one_step)*10);
-            const double reset_step= 0.1*(1./one_step)*10.0;
             const int NoA = 2;                                      const int s_num = NoA+2;
-        
-        
+
+
             ///////////////////////////////////////////// Variables Declarantion
-            double  pos[10] = {0.0};        double  vel[10] = {0.0};
-            double  voltage[10] = {0.0};    double  torque_actuator[10] = {0.0};    double  torque_spring[10] = {0.0};
-            double  joint_raw[30] = {0.0};  double  joint_input[30] = {0.0};        double frequency = 0.0;
-        //    const double spring_stiff = 7.5E-3;
-            double spring_stiff = 0.0;
-            ifstream Inputfile;    string inputline;  string colo;
-            int trial=0;  int rollout=0;
-            fstream actuator_param;         fstream actuator_output;
+            double  pos[10] = {0.0};
+            double  torque_actuator[10] = {0.0};    double  torque_spring[10] = {0.0};
             const double ac_ratio = 10.0;     const double stiff_ratio = 5.;
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////        
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            static const int INDICATOR_POLL_INTERVAL = 40; // ~10ms @ one_step=0.00025
+            if (this->updateCounter % INDICATOR_POLL_INTERVAL == 0)
+            {
+                const std::string indicatorFile = this->resultPath + "/DD/indicator.csv";
+                FILE *IndicateFile = fopen(indicatorFile.c_str(), "r");
+                if (IndicateFile != nullptr)
+                {
+                    int t = this->cachedTrial, r = this->cachedRollout;
+                    if (fscanf(IndicateFile, "%d %d", &t, &r) == 2)
+                    {
+                        if (t != this->cachedTrial || r != this->cachedRollout)
+                            this->inputNeedsReload = true;   // new rollout -> refresh cached command
+                        this->cachedTrial = t;
+                        this->cachedRollout = r;
+                    }
+                    fclose(IndicateFile);
+                }
+            }
+            this->updateCounter++;
+            const int trial = this->cachedTrial;
+            const int rollout = this->cachedRollout;
+
             ///////////////////////////////////////////// Dynamic Process
             if(simu_step>1000){
-                /// Read actuator input from csv
-                Inputfile.open("/home/donghao/result/DD/joint_input.csv",ios::in);
-                std::getline(Inputfile,inputline);
-                stringstream iss(inputline);
-                for (int i=0;i<2*s_num-3;i++) {
-                    std::getline(iss,colo,',');
-                    stringstream convertor(colo);
-                    convertor >> joint_raw[i];
-                };
-                joint_input[0] = 0.0;
-                for(int i=0;i<s_num-2;i++){
-                    joint_input[2*i+1]   = fabs(joint_raw[2*i]);
-                    joint_input[2*i+2] =      joint_raw[2*i+1];
-                };        
-                frequency = fabs(joint_raw[s_num*2-5]);
-                spring_stiff = fabs(joint_raw[s_num*2-4]);
-        
+                if (this->inputNeedsReload)
+                {
+                    const std::string inputFile = this->resultPath + "/DD/joint_input.csv";
+                    ifstream Inputfile(inputFile, ios::in);
+                    if (Inputfile.is_open())
+                    {
+                        string inputline, colo;
+                        if (std::getline(Inputfile, inputline))
+                        {
+                            stringstream iss(inputline);
+                            // NOTE: this parses exactly 2*s_num-3 values, sized for
+                            // NoA=2 (s_num=4). If NoA changes, this loop bound and
+                            // the joint_raw indices below must be re-derived.
+                            for (int i=0;i<2*s_num-3;i++) {
+                                if (!std::getline(iss,colo,',')) break;
+                                stringstream convertor(colo);
+                                convertor >> this->joint_raw[i];
+                            }
+                            this->joint_input[0] = 0.0;
+                            for(int i=0;i<s_num-2;i++){
+                                this->joint_input[2*i+1] = fabs(this->joint_raw[2*i]);
+                                this->joint_input[2*i+2] =      this->joint_raw[2*i+1];
+                            }
+                            this->frequency    = fabs(this->joint_raw[s_num*2-5]);
+                            this->spring_stiff = fabs(this->joint_raw[s_num*2-4]);
+                            this->inputNeedsReload = false;
+                        }
+                    }
+                    // If the file couldn't be read this tick, keep using the
+                    // previously cached command and try again next poll.
+                }
+
                 /// Applying Torque for actuators
                 for (int i=0;i<s_num-2;i++) {
-                    joint[i] = this->model->GetJoints()[i];
                     {
                         pos[i] = joint[i]->Position(0);
-                        vel[i] = joint[i]->GetVelocity(0);
-                        voltage[i] = joint_input[2*i+1]*sin(2*PI*(frequency*simu_time+joint_input[2*i]));
-                        if(voltage[i]>15.0){
-                            voltage[i]=15.0;
+                        double vel = joint[i]->GetVelocity(0);
+                        double voltage = this->joint_input[2*i+1]*sin(2*PI*(this->frequency*simu_time+this->joint_input[2*i]));
+                        if(voltage>15.0){
+                            voltage=15.0;
                         }
-                        else if (voltage[i]<(-15.0)) {
-                            voltage[i]=-15.0;
+                        else if (voltage<(-15.0)) {
+                            voltage=-15.0;
                         };
-                        torque_actuator[i] = (voltage[i]-0.009079*vel[i])/90*0.009079*ac_ratio;
-                        torque_spring[i] = -spring_stiff*pos[i]*ac_ratio;
+                        torque_actuator[i] = (voltage-0.009079*vel)/90*0.009079*ac_ratio;
+                        torque_spring[i] = -this->spring_stiff*pos[i]*ac_ratio;
                         joint[i]->SetForce(0, torque_spring[i]+torque_actuator[i]);
                     };
                 };           // End of loop
                 /// Applying Torque for passive joint
-                joint[s_num-2] = this->model->GetJoints()[s_num-2];
                 {
                     pos[s_num-2] = joint[s_num-2]->Position(0);
-                    torque_spring[s_num-2] = (- stiff_ratio*spring_stiff*pos[s_num-2]) *ac_ratio;
+                    torque_spring[s_num-2] = (- stiff_ratio*this->spring_stiff*pos[s_num-2]) *ac_ratio;
                     joint[s_num-2]->SetForce(0, torque_spring[s_num-2]);
                 };
             };
             ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        
+
              ///////////////////////////////////////////// Recording
-             FILE *IndicateFile;
-             IndicateFile=fopen("/home/donghao/result/DD/indicator.csv","r");
-             fscanf(IndicateFile, "%d %d",&trial,&rollout);
-             fclose(IndicateFile);
              if (trial>=1 && rollout==0){
                  fstream hydro_param_record;
                  if (simu_step == record_step){
-                     hydro_param_record.open("/home/donghao/result/data/"+to_string(trial)+"/actuator_record.csv",ios::out);
-                     hydro_param_record<< spring_stiff <<','<< stiff_ratio <<','<<ac_ratio<<','<< s_num<<endl;
+                     const std::string paramFile = this->dataPath + "/" + to_string(trial) + "/actuator_record.csv";
+                     hydro_param_record.open(paramFile,ios::out);
+                     if (hydro_param_record.is_open())
+                        hydro_param_record<< this->spring_stiff <<','<< stiff_ratio <<','<<ac_ratio<<','<< s_num<<endl;
                      hydro_param_record.close();
                  }
              }
             // /// Actuator parameter recording
              if (trial>=1 && simu_step == record_step  && rollout<3){
-                 actuator_param.open("/home/donghao/result/data/"+to_string(trial)+"/"+to_string(rollout)+"_actuator_param.csv",ios::out);
-                 for (int i=0;i<s_num*2-4;i++) {
-                     actuator_param<<joint_input[i]<<',';
+                 fstream actuator_param;
+                 const std::string paramFile = this->dataPath + "/" + to_string(trial) + "/" + to_string(rollout) + "_actuator_param.csv";
+                 actuator_param.open(paramFile,ios::out);
+                 if (actuator_param.is_open())
+                 {
+                     for (int i=0;i<s_num*2-4;i++) {
+                         actuator_param<<this->joint_input[i]<<',';
+                     }
+                     actuator_param<<this->frequency<<','<<this->spring_stiff<<','<<stiff_ratio<<endl;
                  }
-                 actuator_param<<frequency<<','<<spring_stiff<<','<<stiff_ratio<<endl;
                  actuator_param.close();
                  }
              /// Actuator parameter recording
              if (trial>=1 && simu_step >= record_step && rollout<3){
+                 fstream actuator_output;
+                 const std::string outputFile = this->dataPath + "/" + to_string(trial) + "/" + to_string(rollout) + "_actuator_output.csv";
                  if(simu_step == record_step){
-                      actuator_output.open("/home/donghao/result/data/"+to_string(trial)+"/"+to_string(rollout)+"_actuator_output.csv",ios::out);
+                      actuator_output.open(outputFile,ios::out);
                  }
                  else {
-                      actuator_output.open("/home/donghao/result/data/"+to_string(trial)+"/"+to_string(rollout)+"_actuator_output.csv",ios::app);
-        
-                      actuator_output<<simu_time;
-                      for(int i=0;i<s_num-1;i++){
-                          actuator_output<<','<<torque_actuator[i]<<','<<torque_spring[i];
+                      actuator_output.open(outputFile,ios::app);
+                      if (actuator_output.is_open())
+                      {
+                          actuator_output<<simu_time;
+                          for(int i=0;i<s_num-1;i++){
+                              actuator_output<<','<<torque_actuator[i]<<','<<torque_spring[i];
+                          }
+                          actuator_output<<endl;
                       }
-                      actuator_output<<endl;
                  }
                  actuator_output.close();
              }
         //////////////////////////////////////////////////////////////////////////////////////////////////////////
-        };       // End of OnUpdateS
-    
-        private: physics::JointPtr joint[10];
-    
-        private: event::ConnectionPtr updateConnection;
-    
-        private: physics::ModelPtr model;
-    
-        private: common::Time prevUpdateTime;
-    
-    };
-    GZ_REGISTER_MODEL_PLUGIN(ActuatorPlugin);
-};
-#endif
+        };       // End of OnUpdate
 
+        private: physics::JointPtr joint[10];
+
+        private: event::ConnectionPtr updateConnection;
+
+        private: physics::ModelPtr model;
+
+        private: common::Time prevUpdateTime;
+
+        private: std::string resultPath;
+
+        private: std::string dataPath;
+
+        private: int cachedTrial = 0;
+
+        private: int cachedRollout = -1;
+
+        private: unsigned long updateCounter = 0;
+
+        // Cached rollout command, refreshed only when the trial/rollout changes.
+        private: bool inputNeedsReload = true;
+
+        private: double joint_raw[30] = {0.0};
+
+        private: double joint_input[30] = {0.0};
+
+        private: double frequency = 0.0;
+
+        private: double spring_stiff = 0.0;
+
+    };
+    GZ_REGISTER_MODEL_PLUGIN(ActuatorPlugin)
+}
+#endif
