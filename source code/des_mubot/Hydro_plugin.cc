@@ -462,7 +462,6 @@ class Hydro : public ModelPlugin
         const int trial = this->cachedTrial;
         const int rollout = this->cachedRollout;
 
-        if (trial>=1 && rollout<3){
             fstream joint_record;            fstream links_record;             fstream force_record;     fstream kinet_record; 
             const std::string trialDir = this->dataPath + "/" + to_string(trial) + "/" + to_string(rollout);
 
@@ -505,7 +504,7 @@ class Hydro : public ModelPlugin
                     kinet_record<<endl;
                 }
                 links_record.close(); force_record.close(); kinet_record.close();
-            }
+            
         }
                // End of Recording
     ////////////////////////////////////////////////////////////////////////////////////

@@ -12,7 +12,3 @@ mubot: #namespace
         joint_number: 2      #number of active joint = segment number -2
         select: 25
 
-#        lr: [30,30,30,     30,30,30,     30,30,30,        30,     30]                # Learning Rates
-#        lr: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#        n_params: 11            # Number of weights
-

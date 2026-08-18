@@ -71,7 +71,7 @@ namespace gazebo
             ///////////////////////////////////////////// Variables Declarantion
             double  pos[10] = {0.0};
             double  torque_actuator[10] = {0.0};    double  torque_spring[10] = {0.0};
-            const double ac_ratio = 10.0;     const double stiff_ratio = 5.;
+            const double ac_ratio = 1;     const double stiff_ratio = 5.;
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             static const int INDICATOR_POLL_INTERVAL = 40; // ~10ms @ one_step=0.00025
             if (this->updateCounter % INDICATOR_POLL_INTERVAL == 0)
@@ -141,7 +141,7 @@ namespace gazebo
                         else if (voltage<(-15.0)) {
                             voltage=-15.0;
                         };
-                        torque_actuator[i] = (voltage-0.009079*vel)/90*0.009079*ac_ratio;
+                        torque_actuator[i] = (voltage-0.00126*vel)/90*0.00126*ac_ratio;
                         torque_spring[i] = -this->spring_stiff*pos[i]*ac_ratio;
                         joint[i]->SetForce(0, torque_spring[i]+torque_actuator[i]);
                     };

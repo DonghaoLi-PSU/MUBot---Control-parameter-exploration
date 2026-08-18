@@ -66,7 +66,7 @@ class MubotEnv():
                 done = False
         obs = self._get_obs()
         self.gazebo.pauseSim()
-        velocity_read = np.loadtxt(open("/home/donghao/result/DD/velocity.csv","rb"),delimiter=",",skiprows=0)
+        velocity_read = np.loadtxt(open("./result/DD/velocity.csv","rb"),delimiter=",",skiprows=0)
 #        if len(velocity_read) >=2000:
 #            self.vel_all = velocity_read[0:2000,:]
         if len(velocity_read) >=8000:
