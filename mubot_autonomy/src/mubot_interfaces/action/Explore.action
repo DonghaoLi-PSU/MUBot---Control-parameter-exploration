@@ -1,0 +1,7 @@
+float64 duration         # [s], 0 = until no frontiers remain
+---
+bool success
+float64 explored_area    # [m^2]
+---
+float64 explored_area
+int32 frontiers_left

@@ -1,0 +1,14 @@
+behavior:
+  ros__parameters:
+    rate: 20.0
+    # Heading cascade. Start values; re-tune after tools/bias_step_test.py.
+    k_psi: 1.5               # [1/s]
+    r_max: 0.8               # [rad/s]
+    kp: 4.0                  # [V/(rad/s)]
+    ki: 2.0                  # [V/rad]
+    b_max: 5.0               # [V]; must stay <= 15 - max(e_j)
+    # Collision and avoidance
+    t_crit: 1.5              # [s]
+    d_min: 0.08              # [m]
+    vfh_threshold: 0.5
+    vfh_min_gap_bins: 3      # 3 x 5 deg = body width + margin at ~0.3 m

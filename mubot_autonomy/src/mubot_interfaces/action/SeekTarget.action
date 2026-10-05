@@ -1,0 +1,12 @@
+int32 target_id          # -1 = colour target, >= 0 = ArUco id
+float64 stop_distance    # [m]
+float64 timeout          # [s]
+---
+bool success
+float64 final_distance
+string message
+---
+float64 distance
+float64 bearing
+bool visible
+string state

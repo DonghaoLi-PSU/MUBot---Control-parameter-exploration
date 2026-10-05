@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!--
+  μBot robot model.
+  Replaces the 18 legacy URDF files (AR{05,1,2} x AN{2,4,6} x {ADD,RES}).
+
+  Args:
+    noa         number of active joints (2, 4 or 6). Body segments = noa - 1.
+    ar          aspect ratio key: AR05, AR1, AR2 (selects config/body/<ar>.yaml)
+    added_mass  true: ADD model (added-mass inertia in izz); false: RES
+    sensors     true: add camera, range fan and IMU on the head
+    hydro       hydro model key: HM1..HM4 (selects mubot_gazebo/config/hydro)
+-->
+<robot name="mubot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="noa" default="4"/>
+  <xacro:arg name="ar" default="AR2"/>
+  <xacro:arg name="added_mass" default="true"/>
+  <xacro:arg name="sensors" default="true"/>
+  <xacro:arg name="hydro" default="HM3"/>
+
+  <xacro:property name="noa" value="$(arg noa)"/>
+  <xacro:property name="body"
+    value="${xacro.load_yaml('$(find mubot_description)/config/body/$(arg ar).yaml')}"/>
+  <xacro:property name="izz_key" value="${'izz_add' if '$(arg added_mass)' == 'true' else 'izz_res'}"/>
+
+  <xacro:include filename="$(find mubot_description)/urdf/segments.xacro"/>
+
+  <!-- Head (root link). -->
+  <xacro:segment name="segment_head" mesh="segment_head" p="${body['head']}" izz_key="${izz_key}" color="1 0 0 1"/>
+
+  <!-- Body segments and active joints joint_a0 .. joint_a{noa-1}. -->
+  <xacro:body_chain parent="segment_head" index="1" count="${noa - 1}"
+                    offset="${body['head']['joint_offset']}" body="${body}" izz_key="${izz_key}"/>
+
+  <!-- Tail, attached to the last body segment by the last active joint. -->
+  <xacro:segment name="segment_tail" mesh="segment_tail" p="${body['tail']}" izz_key="${izz_key}" color="1 0.5 0 1"/>
+  <xacro:revolute name="joint_a${noa - 1}" parent="segment_body_${noa - 1}" child="segment_tail"
+                  offset="${body['body']['joint_offset']}"/>
+
+  <!-- Caudal fin (tip) on the passive spring joint. -->
+  <xacro:segment name="segment_tip" mesh="segment_tip" p="${body['tip']}" izz_key="${izz_key}" color="0 0 1 1"/>
+  <xacro:revolute name="joint_p0" parent="segment_tail" child="segment_tip"
+                  offset="${body['tail']['joint_offset']}"/>
+
+  <xacro:if value="$(arg sensors)">
+    <xacro:include filename="$(find mubot_description)/urdf/sensors.xacro"/>
+    <xacro:head_sensors parent="segment_head"/>
+  </xacro:if>
+
+  <xacro:include filename="$(find mubot_description)/urdf/gazebo.xacro"/>
+  <xacro:mubot_gazebo noa="${noa}" hydro="$(arg hydro)" ar="$(arg ar)"/>
+</robot>

@@ -1,0 +1,7 @@
+# Hydrodynamic model HM1 (paper Table I): resistive_only
+# Ca scales the reactive (added-mass) forces; legacy name Seg_Cm.
+# Cp scales the pressure force at head and tail; legacy name loco_indicator.
+Ca: 0
+Cp: 0
+rho: 1000.0              # fluid density [kg/m^3]
+M_total_ratio: 0.75      # share of added mass already in the URDF link mass

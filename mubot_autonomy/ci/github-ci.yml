@@ -1,0 +1,40 @@
+# CI for mubot_autonomy. GitHub only reads workflows from .github/workflows at
+# the repository root: copy this file there (adjusting working-directory) or
+# move it when this folder becomes its own repository.
+name: mubot_autonomy
+on: [push, pull_request]
+jobs:
+  unit-tests:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: mubot_autonomy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install numpy pyyaml pytest gtsam
+      - name: Python unit tests (no ROS needed)
+        run: |
+          for p in src/mubot_*/; do
+            [ -d "$p/test" ] && [ -f "$p/setup.py" ] || continue
+            PYTHONPATH=src/mubot_control python -m pytest -q "$p/test"
+          done
+      - name: C++ model tests (no Gazebo needed)
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgtest-dev
+          g++ -std=c++17 -Isrc/mubot_gazebo/include src/mubot_gazebo/test/test_models.cpp \
+            -lgtest -lgtest_main -pthread -o test_models && ./test_models
+
+  colcon:
+    runs-on: ubuntu-24.04
+    container: osrf/ros:jazzy-desktop-full
+    steps:
+      - uses: actions/checkout@v4
+      - run: apt-get update && apt-get install -y ros-jazzy-ros-gz libyaml-cpp-dev
+      - shell: bash
+        working-directory: mubot_autonomy
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --event-handlers console_direct+
+          colcon test && colcon test-result --verbose

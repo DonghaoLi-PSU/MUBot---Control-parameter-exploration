@@ -1,0 +1,11 @@
+# Reference case (docs/decisions/0002).
+name: AN4_Kmed_HM3_AR2
+noa: 4                 # active joints; body segments = noa - 1
+stiffness: 3.75e-3     # medium, K-bar = 0.75 [N·m/rad]
+tail_ratio: 5.0        # caudal joint stiffness = 5 K
+hydro: HM3             # Ca = 1, Cp = 0.5
+ar: AR2
+added_mass: true       # ADD model
+n_trial: 3             # repeats with random initial conditions (paper)
+world: open_water.sdf
+model: mubot.urdf.xacro   # expanded with noa/ar/hydro/added_mass, sensors:=false

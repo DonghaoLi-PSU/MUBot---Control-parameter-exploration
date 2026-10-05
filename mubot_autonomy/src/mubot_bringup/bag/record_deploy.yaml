@@ -1,0 +1,21 @@
+# ros2 bag record --storage mcap $(cat topics)  -- topics for a deploy run
+topics:
+  - /tf
+  - /tf_static
+  - /mubot/imu
+  - /mubot/range
+  - /mubot/camera/camera_info
+  - /mubot/perception/heading
+  - /mubot/perception/yaw_rate
+  - /mubot/perception/obstacles
+  - /mubot/perception/target
+  - /mubot/perception/landmarks
+  - /mubot/primitive
+  - /mubot/gait_cmd
+  - /mubot/gait_state
+  - /mubot/actuator_state
+  - /mubot/odometry/filtered
+  - /mubot/pose
+  - /mubot/map
+  - /mubot/odom
+# Add /mubot/camera/image_raw only when needed: it dominates bag size.

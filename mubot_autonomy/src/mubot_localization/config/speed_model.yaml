@@ -1,0 +1,13 @@
+# PLACEHOLDER - NOT MEASURED. Replace with the output of tools/fit_speed_model.py.
+# speed[mode][bias index][k index] in m/s, forward positive.
+amplitude_scale: [0.0, 0.25, 0.5, 0.75, 1.0]
+bias: [0.0, 2.0, 4.0]
+speed:
+  forward:
+    - [0.0, 0.010, 0.025, 0.040, 0.050]
+    - [0.0, 0.009, 0.022, 0.036, 0.045]
+    - [0.0, 0.008, 0.019, 0.031, 0.039]
+  backward:
+    - [0.0, 0.004, 0.008, 0.012, 0.015]
+    - [0.0, 0.004, 0.007, 0.011, 0.013]
+    - [0.0, 0.003, 0.006, 0.009, 0.011]

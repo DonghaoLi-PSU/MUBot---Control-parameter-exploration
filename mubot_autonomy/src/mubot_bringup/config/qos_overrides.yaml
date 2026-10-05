@@ -1,0 +1,6 @@
+# Command topics: reliable, depth 1, 100 ms deadline (see docs/architecture/ros2_port.md).
+/**:
+  ros__parameters:
+    qos_overrides:
+      /mubot/primitive:
+        publisher: {reliability: reliable, depth: 1, deadline: {sec: 0, nsec: 100000000}}

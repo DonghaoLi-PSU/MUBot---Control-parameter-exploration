@@ -1,0 +1,10 @@
+build/
+install/
+log/
+data/*
+!data/README.md
+__pycache__/
+*.pyc
+.pytest_cache/
+*.mcap
+*.db3

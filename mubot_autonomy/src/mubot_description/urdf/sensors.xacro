@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!-- Head sensors. Topic names are set explicitly so gz topics stay short. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="head_sensors" params="parent">
+    <!-- Frames. The swimming direction is -x (legacy reward uses -x velocity),
+         so forward-looking sensors are yawed by pi. Mount offsets are placeholders
+         until the hardware layout is fixed. -->
+    <link name="imu_link"/>
+    <joint name="imu_joint" type="fixed">
+      <parent link="${parent}"/><child link="imu_link"/>
+      <origin xyz="0.02 0 0" rpy="0 0 0"/>
+    </joint>
+    <link name="range_link"/>
+    <joint name="range_joint" type="fixed">
+      <parent link="${parent}"/><child link="range_link"/>
+      <origin xyz="-0.002 0 0" rpy="0 0 3.14159265"/>
+    </joint>
+    <link name="camera_link"/>
+    <joint name="camera_joint" type="fixed">
+      <parent link="${parent}"/><child link="camera_link"/>
+      <origin xyz="-0.002 0 0.004" rpy="0 0 3.14159265"/>
+    </joint>
+
+    <gazebo reference="imu_link">
+      <sensor name="imu" type="imu">
+        <always_on>true</always_on>
+        <update_rate>200</update_rate>
+        <topic>/mubot/imu</topic>
+      </sensor>
+    </gazebo>
+
+    <gazebo reference="range_link">
+      <sensor name="range" type="gpu_lidar">
+        <update_rate>50</update_rate>
+        <topic>/mubot/range</topic>
+        <lidar>
+          <scan>
+            <horizontal>
+              <samples>5</samples>
+              <min_angle>-0.5236</min_angle>
+              <max_angle>0.5236</max_angle>
+            </horizontal>
+          </scan>
+          <range><min>0.02</min><max>1.0</max><resolution>0.001</resolution></range>
+          <noise><type>gaussian</type><mean>0</mean><stddev>0.003</stddev></noise>
+        </lidar>
+      </sensor>
+    </gazebo>
+
+    <gazebo reference="camera_link">
+      <sensor name="camera" type="camera">
+        <update_rate>15</update_rate>
+        <topic>/mubot/camera/image_raw</topic>
+        <camera>
+          <camera_info_topic>/mubot/camera/camera_info</camera_info_topic>
+          <horizontal_fov>1.2</horizontal_fov>
+          <image><width>320</width><height>240</height><format>R8G8B8</format></image>
+          <clip><near>0.01</near><far>3.0</far></clip>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

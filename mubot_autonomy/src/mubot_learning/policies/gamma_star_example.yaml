@@ -1,0 +1,11 @@
+# EXAMPLE ONLY - NOT A TRAINED POLICY.
+# Placeholder so the deploy and teleop stacks can be brought up before
+# training. Replace with gamma_star_AN4_Kmed_HM3_AR2.yaml from the trainer.
+case: example
+trained: null
+gamma: [12.0, 0.2, 12.0, 0.4, 12.0, 0.6, 12.0, 3.0]
+amplitude: [12.0, 12.0, 12.0, 12.0]
+phase: [0.0, 0.2, 0.4, 0.6]
+frequency: 3.0
+stiffness: 3.75e-3
+tail_ratio: 5.0

@@ -1,0 +1,6 @@
+gait_generator:
+  ros__parameters:
+    policy_file: ""          # set by launch: mubot_learning/policies/gamma_star_<case>.yaml
+    stiffness: 3.75e-3       # K [N·m/rad], medium stiffness
+    tail_ratio: 5.0          # caudal joint = 5 K
+    rate: 50.0

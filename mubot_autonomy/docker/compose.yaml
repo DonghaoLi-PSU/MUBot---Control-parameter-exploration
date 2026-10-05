@@ -1,0 +1,13 @@
+services:
+  dev:
+    build: .
+    volumes:
+      - ..:/ws
+    environment:
+      - DISPLAY=${DISPLAY}
+    network_mode: host
+  train:
+    build: .
+    volumes:
+      - ..:/ws
+    command: bash -lc "colcon build && . install/setup.bash && ros2 launch mubot_bringup train.launch.py workers:=8"

@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!-- Gazebo systems attached to the model. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="mubot_gazebo" params="noa hydro ar">
+    <gazebo>
+      <plugin filename="mubot_hydro_system" name="mubot_gazebo::HydroSystem">
+        <body_params>$(find mubot_gazebo)/config/hydro/${ar}.yaml</body_params>
+        <model_params>$(find mubot_gazebo)/config/hydro/${hydro}.yaml</model_params>
+        <calibration_time>0.1</calibration_time>
+      </plugin>
+
+      <plugin filename="mubot_actuator_system" name="mubot_gazebo::ActuatorSystem">
+        <xacro:macro name="joint_names" params="i">
+          <xacro:if value="${i &lt; noa}">
+            <joint_name>joint_a${i}</joint_name>
+            <xacro:joint_names i="${i + 1}"/>
+          </xacro:if>
+        </xacro:macro>
+        <xacro:joint_names i="0"/>
+        <passive_joint>joint_p0</passive_joint>
+        <command_topic>/model/mubot/gait_cmd</command_topic>
+        <state_topic>/model/mubot/actuator_state</state_topic>
+        <estop_topic>/model/mubot/estop</estop_topic>
+        <watchdog_timeout>0.2</watchdog_timeout>
+      </plugin>
+
+      <plugin filename="gz-sim-joint-state-publisher-system"
+              name="gz::sim::systems::JointStatePublisher">
+        <topic>/model/mubot/joint_state</topic>
+      </plugin>
+
+      <!-- Ground truth for evaluation and speed-model fitting only. -->
+      <plugin filename="gz-sim-odometry-publisher-system"
+              name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>world</odom_frame>
+        <robot_base_frame>segment_head</robot_base_frame>
+        <odom_topic>/model/mubot/odometry</odom_topic>
+        <odom_publish_frequency>100</odom_publish_frequency>
+        <dimensions>2</dimensions>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+</robot>

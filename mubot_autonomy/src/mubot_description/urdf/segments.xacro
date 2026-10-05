@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- One rigid segment. The link frame sits at the segment's front joint. -->
+  <xacro:macro name="segment" params="name mesh p izz_key color">
+    <link name="${name}">
+      <inertial>
+        <origin xyz="${p['cog']} 0 0" rpy="0 0 0"/>
+        <mass value="${p['mass']}"/>
+        <inertia ixx="${p['ixx']}" ixy="0" ixz="0" iyy="${p['iyy']}" iyz="0" izz="${p[izz_key]}"/>
+      </inertial>
+      <visual>
+        <geometry><mesh filename="package://mubot_description/meshes/${mesh}.STL"/></geometry>
+        <material name="${name}_color"><color rgba="${color}"/></material>
+      </visual>
+      <collision>
+        <geometry><mesh filename="package://mubot_description/meshes/${mesh}.STL"/></geometry>
+      </collision>
+    </link>
+  </xacro:macro>
+
+  <!-- Yaw joint. Limits match the legacy model. Torque comes from the actuator system. -->
+  <xacro:macro name="revolute" params="name parent child offset">
+    <joint name="${name}" type="revolute">
+      <origin xyz="${offset} 0 0" rpy="0 0 0"/>
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-1.57" upper="1.57" effort="10" velocity="10"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Recursive chain of body segments segment_body_1 .. segment_body_<count>. -->
+  <xacro:macro name="body_chain" params="parent index count offset body izz_key">
+    <xacro:if value="${index &lt;= count}">
+      <xacro:segment name="segment_body_${index}" mesh="segment_body" p="${body['body']}"
+                     izz_key="${izz_key}" color="1 1 0 1"/>
+      <xacro:revolute name="joint_a${index - 1}" parent="${parent}" child="segment_body_${index}"
+                      offset="${offset}"/>
+      <xacro:body_chain parent="segment_body_${index}" index="${index + 1}" count="${count}"
+                        offset="${body['body']['joint_offset']}" body="${body}" izz_key="${izz_key}"/>
+    </xacro:if>
+  </xacro:macro>
+</robot>

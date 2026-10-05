@@ -1,0 +1,17 @@
+# Hydrodynamic body parameters for aspect ratio 2.
+# Source: legacy urdf/Hydro_plugin_AR2.cc. Arrays are [head, body, tail, tip].
+structural_mass: [3.242e-3, 2.017e-3, 1.179e-3, 3.744e-4]   # Mass_* [kg], for CoG velocity
+c_d: 1.2          # drag coefficient
+c_f: 0.006        # skin-friction coefficient
+M_0: 1.479e-1     # added mass per length at the head [kg/m]
+M_l: 1.479e-1     # added mass per length at the tail end [kg/m]
+h_0: 13.72e-3     # segment depth [m]
+M_total: [6.360e-3, 3.957e-3, 2.921e-3, 4.141e-3]   # int(M_0 ds)
+M_S:     [1.367e-4, 5.292e-5, 2.885e-5, 5.798e-5]   # int(M_0 s ds)
+cog:     [21.75e-3, 13.38e-3, 7.934e-3, 14.00e-3]   # from segment front [m]
+lt:      [43.00e-3, 26.75e-3, 19.75e-3, 28.00e-3]   # segment length [m]
+IH0:     [5.901e-4, 3.671e-4, 2.710e-4, 3.842e-4]
+IH1:     [1.268e-5, 4.910e-6, 2.676e-6, 5.379e-6]
+IH2:     [3.637e-7, 8.756e-8, 3.524e-8, 1.004e-7]
+IH3:     [1.173e-8, 1.757e-9, 5.220e-10, 2.109e-9]
+IP:      [1.437e-3, 8.937e-4, 4.965e-4, 8.231e-4]

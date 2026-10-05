@@ -1,0 +1,6 @@
+float64 tolerance        # [m]
+---
+bool success
+float64 final_distance
+---
+float64 distance

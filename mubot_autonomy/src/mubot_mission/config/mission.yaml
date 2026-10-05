@@ -1,0 +1,5 @@
+mission:
+  ros__parameters:
+    seek_stop_distance: 0.08   # [m]
+    seek_timeout: 120.0        # [s]
+    home_tolerance: 0.05       # [m]

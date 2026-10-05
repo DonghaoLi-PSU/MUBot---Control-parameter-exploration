@@ -1,0 +1,11 @@
+slam:
+  ros__parameters:
+    keyframe_translation: 0.05     # [m]
+    keyframe_rotation_deg: 10.0
+    max_landmark_range: 0.8        # [m], 4 cm markers at 320 x 240
+    grid_resolution: 0.01          # [m]
+gait_odometry:
+  ros__parameters:
+    speed_model: ""                # set by launch
+    speed_variance: 1.0e-4
+    base_frame: segment_head

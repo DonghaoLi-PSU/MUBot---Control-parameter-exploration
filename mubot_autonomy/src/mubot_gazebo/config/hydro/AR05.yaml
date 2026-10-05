@@ -1,0 +1,19 @@
+# Hydrodynamic body parameters for aspect ratio 0.5.
+# Source: legacy urdf/Hydro_plugin_AR05.cc. Arrays are [head, body, tail, tip].
+# Note: legacy hydro_parameter.csv (also AR 0.5) uses c_d = 2.25, c_f = 0.06,
+# which differs from the AR05 plugin below. Confirm which one the paper used.
+structural_mass: [60.10e-3, 37.39e-3, 22.18e-3, 6.939e-3]
+c_d: 1.2
+c_f: 0.006
+M_0: 2.741
+M_l: 2.741
+h_0: 59.08e-3
+M_total: [1.179e-1, 7.333e-2, 4.351e-2, 7.676e-2]
+M_S:     [2.534e-3, 9.808e-4, 3.452e-4, 1.075e-3]
+cog:     [21.75e-3, 13.38e-3, 7.934e-3, 14.00e-3]
+lt:      [43.00e-3, 26.75e-3, 19.75e-3, 28.00e-3]
+IH0:     [2.540e-3, 1.580e-3, 9.376e-4, 1.654e-3]
+IH1:     [5.462e-5, 2.114e-5, 7.440e-6, 2.316e-5]
+IH2:     [1.566e-6, 3.770e-7, 7.871e-8, 4.323e-7]
+IH3:     [5.050e-8, 7.563e-9, 9.369e-10, 9.079e-9]
+IP:      [6.185e-3, 3.847e-3, 2.283e-3, 3.543e-3]

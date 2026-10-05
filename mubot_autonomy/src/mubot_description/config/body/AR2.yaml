@@ -1,0 +1,37 @@
+# Body parameters for aspect ratio AR2, extracted from legacy
+# urdf/AR2_AN4_ADD_V3.urdf and AR2_AN4_RES_V3.urdf.
+# mass already includes 0.75 x added mass (Seg_M_total_ratio).
+# izz_add: added-mass rotational inertia included (ADD); izz_res: not (RES).
+# joint_offset: distance from this segment's joint to the next joint [m].
+
+head:
+  mass: 8.0120e-03
+  cog: 2.1750e-02
+  ixx: 4.8080e-08
+  iyy: 1.6310e-07
+  izz_add: 4.1900e-06
+  izz_res: 2.6960e-07
+  joint_offset: 0.041
+body:
+  mass: 4.9840e-03
+  cog: 1.3375e-02
+  ixx: 2.9910e-08
+  iyy: 5.3810e-08
+  izz_add: 1.0160e-06
+  izz_res: 7.2480e-08
+  joint_offset: 0.02675
+tail:
+  mass: 3.3700e-03
+  cog: 7.9340e-03
+  ixx: 1.7560e-08
+  iyy: 4.0620e-08
+  izz_add: 4.3950e-07
+  izz_res: 5.9730e-08
+  joint_offset: 0.02175
+tip:
+  mass: 3.4800e-03
+  cog: 1.4000e-02
+  ixx: 5.9050e-09
+  iyy: 3.0340e-08
+  izz_add: 1.1310e-06
+  izz_res: 4.8980e-08

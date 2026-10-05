@@ -1,0 +1,702 @@
+<title>μBot Perception Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column, figures break out to a wider track; tables scroll inside their own box */
+:root{
+  --bg:#f5f7f8; --surface:#ffffff; --fg:#1b2a33; --muted:#5a6b75; --line:#c9d3d9;
+  --accent:#0f7a8a; --accent-soft:#e1f1f3; --train:#8a5a0f;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f171c; --surface:#16222a; --fg:#dde7ec; --muted:#93a5af; --line:#2f3f49;
+  --accent:#4fc3d3; --accent-soft:#143840; --train:#e0b062; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f171c; --surface:#16222a; --fg:#dde7ec; --muted:#93a5af; --line:#2f3f49;
+  --accent:#4fc3d3; --accent-soft:#143840; --train:#e0b062; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--body)}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:32px 64px;display:grid;gap:40px}
+.prose{max-width:68ch}
+h1,h2{font-family:var(--display);font-weight:600;text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:2.1rem;letter-spacing:-.01em}
+h2{font-size:1.35rem;margin-bottom:10px}
+p{margin:0 0 10px}
+.eyebrow{font:500 .75rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.lede{color:var(--muted);font-size:1.02rem;margin-top:10px}
+code,.mono{font-family:var(--mono);font-size:.86em}
+section{display:grid;gap:14px}
+
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:12px;min-width:0}
+.scroll{overflow-x:auto}
+figure svg{display:block;width:100%;height:auto;color:var(--fg)}
+#fig1 svg{min-width:960px}
+#fig5 svg{min-width:900px}
+#fig2 svg{min-width:720px}
+#fig3 svg{min-width:860px}
+#fig4 svg{min-width:900px}
+figcaption{color:var(--muted);font-size:.9rem;max-width:90ch}
+.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{width:22px;height:12px;border-radius:3px;border:1.5px solid var(--line);background:var(--surface)}
+.sw.new{border-color:var(--accent);background:var(--accent-soft)}
+.sw.train{border:1.5px dashed var(--train);background:transparent}
+
+/* SVG styling via page CSS */
+svg text{font-family:var(--body);font-size:12.5px;fill:currentColor}
+svg .t{font-weight:600;font-size:13.5px}
+svg .m{font-family:var(--mono);font-size:11.5px}
+svg .s{fill:var(--muted);font-size:11.5px}
+svg .lbl{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+svg .zone{fill:none;stroke:var(--line);stroke-width:1.5}
+svg .zt{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.06em}
+svg .box{fill:var(--surface);stroke:var(--muted);stroke-width:1.2}
+svg .new{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.6}
+svg .trainbox{fill:none;stroke:var(--train);stroke-width:1.5;stroke-dasharray:6 4}
+svg .tr{fill:var(--train)}
+svg .wire{stroke:currentColor;stroke-width:1.4;fill:none}
+svg .wire.a{stroke:var(--accent);stroke-width:1.8}
+svg .wire.d{stroke:var(--train);stroke-dasharray:5 4}
+svg .head{fill:currentColor}
+svg .head.a{fill:var(--accent)}
+
+.tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.88rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 .72rem/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;font:500 .7rem/1 var(--mono);padding:4px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag.new{border-color:var(--accent);color:var(--accent)}
+
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.cols>div{min-width:0}
+ol.steps{margin:0;padding-left:1.3em;display:grid;gap:8px;max-width:75ch}
+ul.plain{margin:0;padding-left:1.1em;display:grid;gap:6px}
+</style>
+
+<div class="wrap">
+
+<header class="prose">
+  <div class="eyebrow">des_mubot · NoA = 4 · medium stiffness · HM-3 · camera + range + IMU + SLAM</div>
+  <h1>μBot Perception Architecture</h1>
+  <p class="lede">A complete ROS stack for the 4-actuator μBot, built on one optimized forward gait γ*. Head sensors (camera, range, IMU) feed perception. A state estimator and a landmark SLAM node track where the robot is and build a map. A mission node sets goals, behaviour turns goals and perception into swimming primitives (forward, turn with bias voltage, backward with flipped phases), and a supervisor keeps the whole loop safe. The existing EM-PGPE training pipeline stays as it is and produces γ* offline.</p>
+</header>
+
+<section>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw new"></i>New node or plugin change</span>
+    <span><i class="sw"></i>Existing component or standard ROS package</span>
+  </div>
+  <figure id="fig1">
+    <div class="scroll">
+    <svg viewBox="0 0 1200 750" role="img" aria-label="Full system: Gazebo simulation with head sensors feeds perception and robot_state_publisher; perception and gait state feed the state estimator and SLAM node; mission, behaviour and gait generator nodes close the loop to the actuator plugin; a supervisor, teleop node and logging tools sit underneath.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker>
+        <marker id="ara" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head a"/></marker>
+      </defs>
+      <text class="zt" x="20" y="24">SIMULATION</text>
+      <text class="zt" x="370" y="24">PERCEPTION</text>
+      <text class="zt" x="660" y="24">LOCALIZATION + SLAM</text>
+      <text class="zt" x="950" y="24">DECISION + CONTROL</text>
+
+      <!-- Gazebo -->
+      <rect class="zone" x="20" y="40" width="280" height="560" rx="8"/>
+      <text class="zt" x="36" y="64">GAZEBO + ODE</text>
+      <text class="s" x="36" y="82">4 kHz physics, publishes /clock</text>
+      <rect class="box" x="36" y="100" width="248" height="60" rx="6"/>
+      <text class="t" x="160" y="125" text-anchor="middle">μBot model</text>
+      <text class="m" x="160" y="146" text-anchor="middle">AR2_AN4_ADD_V3_sensors.urdf</text>
+      <rect class="box" x="36" y="180" width="118" height="60" rx="6"/>
+      <text class="t" x="95" y="205" text-anchor="middle">Hydro plugin</text>
+      <text class="s" x="95" y="225" text-anchor="middle">HM-3</text>
+      <rect class="new" x="166" y="180" width="118" height="60" rx="6"/>
+      <text class="t" x="225" y="205" text-anchor="middle">Actuator plugin</text>
+      <text class="s" x="225" y="225" text-anchor="middle">bias, watchdog</text>
+      <rect class="new" x="36" y="260" width="248" height="200" rx="6"/>
+      <text class="t" x="50" y="284">Head sensors</text>
+      <text class="m" x="50" y="314">/mubot/imu · 200 Hz</text>
+      <text class="m" x="50" y="340">/mubot/range · 50 Hz</text>
+      <text class="m" x="50" y="366">/mubot/camera/image_raw</text>
+      <text class="s" x="50" y="384">15 Hz, 320 × 240</text>
+      <text class="m" x="50" y="410">/mubot/camera/camera_info</text>
+      <text class="s" x="50" y="428">intrinsics fₓ, cₓ</text>
+      <rect class="box" x="36" y="480" width="248" height="100" rx="6"/>
+      <text class="t" x="50" y="504">Simulator state</text>
+      <text class="m" x="50" y="530">/joint_states</text>
+      <text class="m" x="50" y="552">/mubot/odom</text>
+      <text class="s" x="140" y="552">ground truth, eval only</text>
+
+      <!-- column 2 -->
+      <rect class="new" x="370" y="260" width="210" height="140" rx="6"/>
+      <text class="t" x="475" y="286" text-anchor="middle">perception_node</text>
+      <text class="s" x="475" y="312" text-anchor="middle">heading ψ, yaw rate r</text>
+      <text class="s" x="475" y="332" text-anchor="middle">range sectors d, ḋ, TTC</text>
+      <text class="s" x="475" y="352" text-anchor="middle">target θ, d, looming</text>
+      <text class="s" x="475" y="372" text-anchor="middle">ArUco landmarks (id, θ, d)</text>
+      <rect class="box" x="370" y="480" width="210" height="80" rx="6"/>
+      <text class="t" x="475" y="508" text-anchor="middle">robot_state_publisher</text>
+      <text class="s" x="475" y="530" text-anchor="middle">/joint_states → /tf</text>
+      <text class="s" x="475" y="548" text-anchor="middle">sensor mounts → /tf_static</text>
+
+      <!-- column 3 -->
+      <rect class="new" x="660" y="100" width="210" height="100" rx="6"/>
+      <text class="t" x="765" y="126" text-anchor="middle">state_estimator</text>
+      <text class="s" x="765" y="148" text-anchor="middle">robot_localization EKF</text>
+      <text class="s" x="765" y="168" text-anchor="middle">IMU ψ + gait speed model</text>
+      <text class="m" x="765" y="188" text-anchor="middle">/tf odom → base_link</text>
+      <rect class="new" x="660" y="260" width="210" height="140" rx="6"/>
+      <text class="t" x="765" y="286" text-anchor="middle">slam_node</text>
+      <text class="s" x="765" y="312" text-anchor="middle">landmark pose-graph SLAM</text>
+      <text class="s" x="765" y="332" text-anchor="middle">occupancy grid from range</text>
+      <text class="m" x="765" y="356" text-anchor="middle">/tf map → odom</text>
+      <text class="m" x="765" y="376" text-anchor="middle">/mubot/map, /landmarks</text>
+
+      <!-- column 4 -->
+      <rect class="new" x="950" y="100" width="230" height="80" rx="6"/>
+      <text class="t" x="1065" y="126" text-anchor="middle">mission_node</text>
+      <text class="s" x="1065" y="148" text-anchor="middle">SeekTarget · Explore</text>
+      <text class="s" x="1065" y="166" text-anchor="middle">ReturnHome (actions)</text>
+      <rect class="new" x="950" y="260" width="230" height="140" rx="6"/>
+      <text class="t" x="1065" y="286" text-anchor="middle">behavior_node</text>
+      <text class="s" x="1065" y="312" text-anchor="middle">state machine (Fig. 2)</text>
+      <text class="s" x="1065" y="332" text-anchor="middle">priority arbiter, VFH+</text>
+      <text class="s" x="1065" y="352" text-anchor="middle">goal → ψ_ref using map pose</text>
+      <text class="s" x="1065" y="372" text-anchor="middle">heading cascade → b</text>
+      <rect class="new" x="950" y="480" width="230" height="80" rx="6"/>
+      <text class="t" x="1065" y="506" text-anchor="middle">gait_generator_node</text>
+      <text class="s" x="1065" y="526" text-anchor="middle">γ* + primitive → GaitCmd</text>
+      <text class="s" x="1065" y="544" text-anchor="middle">publishes /mubot/gait_state</text>
+
+      <!-- arrows -->
+      <line class="wire a" x1="284" y1="330" x2="367" y2="330" marker-end="url(#ara)"/>
+      <text class="lbl" x="327" y="322" text-anchor="middle">sensors</text>
+      <line class="wire" x1="284" y1="530" x2="367" y2="530" marker-end="url(#ar)"/>
+      <text class="lbl" x="327" y="522" text-anchor="middle">joints</text>
+
+      <polyline class="wire a" points="580,290 620,290 620,150 657,150" marker-end="url(#ara)"/>
+      <text class="lbl" x="626" y="225">ψ, r</text>
+      <line class="wire a" x1="580" y1="340" x2="657" y2="340" marker-end="url(#ara)"/>
+      <text class="lbl" x="618" y="332" text-anchor="middle">landmarks</text>
+      <text class="lbl" x="618" y="356" text-anchor="middle">+ scan</text>
+      <line class="wire a" x1="765" y1="200" x2="765" y2="257" marker-end="url(#ara)"/>
+      <text class="lbl" x="773" y="233">odometry</text>
+
+      <polyline class="wire a" points="950,520 640,520 640,185 657,185" marker-end="url(#ara)"/>
+      <text class="lbl" x="765" y="512" text-anchor="middle">/mubot/gait_state (f, k, mode)</text>
+
+      <polyline class="wire a" points="870,280 915,280 915,140 947,140" marker-end="url(#ara)"/>
+      <text class="lbl" x="921" y="215">pose,</text>
+      <text class="lbl" x="921" y="229">map</text>
+      <line class="wire a" x1="870" y1="370" x2="947" y2="370" marker-end="url(#ara)"/>
+      <text class="lbl" x="908" y="362" text-anchor="middle">pose</text>
+
+      <line class="wire a" x1="1065" y1="180" x2="1065" y2="257" marker-end="url(#ara)"/>
+      <text class="lbl" x="1073" y="223">/mubot/goal</text>
+
+      <polyline class="wire a" points="475,400 475,440 1000,440 1000,403" marker-end="url(#ara)"/>
+      <text class="lbl" x="765" y="456" text-anchor="middle">/mubot/perception/*</text>
+
+      <line class="wire a" x1="1065" y1="400" x2="1065" y2="477" marker-end="url(#ara)"/>
+      <text class="lbl" x="1073" y="445">/mubot/primitive</text>
+
+      <polyline class="wire a" points="1065,560 1065,600 340,600 340,210 287,210" marker-end="url(#ara)"/>
+      <text class="lbl" x="700" y="592" text-anchor="middle">/mubot/gait_cmd · 50 Hz</text>
+
+      <!-- bottom band -->
+      <rect class="new" x="20" y="640" width="380" height="96" rx="6"/>
+      <text class="t" x="36" y="664">supervisor_node</text>
+      <text class="s" x="36" y="686">mode: train / deploy / teleop</text>
+      <text class="s" x="36" y="704">heartbeats, stale-data checks → /diagnostics</text>
+      <text class="m" x="36" y="724">/mubot/estop → actuator plugin</text>
+      <line class="wire" x1="160" y1="640" x2="160" y2="603" marker-end="url(#ar)"/>
+
+      <rect class="box" x="420" y="640" width="380" height="96" rx="6"/>
+      <text class="t" x="436" y="664">Tools</text>
+      <text class="s" x="436" y="686">rosbag profiles, RViz config, rqt_plot</text>
+      <text class="s" x="436" y="704">dynamic_reconfigure for gains and thresholds</text>
+      <text class="s" x="436" y="724">/mubot/actuator_state: voltage, clip, power</text>
+
+      <rect class="new" x="820" y="640" width="360" height="96" rx="6"/>
+      <text class="t" x="836" y="664">teleop_node</text>
+      <text class="s" x="836" y="686">keyboard or joystick</text>
+      <text class="m" x="836" y="706">/mubot/primitive_override</text>
+      <text class="s" x="836" y="724">top priority in the arbiter</text>
+      <polyline class="wire" points="1180,690 1192,690 1192,330 1183,330" marker-end="url(#ar)"/>
+    </svg>
+    </div>
+    <figcaption><b>Fig. 1. The full stack in deploy mode.</b> Every node also reads <code>/tf</code> (not drawn) to find where each sensor sits on the body and where the body is in the map. The actuator plugin ramps to zero voltage if <code>/mubot/gait_cmd</code> stops for 200 ms or <code>/mubot/estop</code> is set. In training mode the supervisor switches the plugin back to the CSV file bus, so the EM-PGPE scripts run unchanged.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <figure id="fig2">
+    <div class="scroll">
+    <svg viewBox="0 0 1000 330" role="img" aria-label="Behaviour state machine: forward, turn, backward and escape turn, with transitions on target bearing, front range and heading change.">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker>
+      </defs>
+      <rect class="new" x="40" y="115" width="170" height="70" rx="35"/>
+      <text class="t" x="125" y="145" text-anchor="middle">FORWARD</text>
+      <text class="s" x="125" y="165" text-anchor="middle">γ*, b = 0</text>
+
+      <rect class="new" x="415" y="20" width="170" height="70" rx="35"/>
+      <text class="t" x="500" y="50" text-anchor="middle">TURN L / R</text>
+      <text class="s" x="500" y="70" text-anchor="middle">b from heading cascade</text>
+
+      <rect class="new" x="415" y="210" width="170" height="70" rx="35"/>
+      <text class="t" x="500" y="240" text-anchor="middle">BACKWARD</text>
+      <text class="s" x="500" y="260" text-anchor="middle">Ψⱼ → −Ψⱼ</text>
+
+      <rect class="new" x="790" y="115" width="170" height="70" rx="35"/>
+      <text class="t" x="875" y="145" text-anchor="middle">ESCAPE TURN</text>
+      <text class="s" x="875" y="165" text-anchor="middle">b = ±b_max, away</text>
+
+      <line class="wire" x1="210" y1="128" x2="413" y2="48" marker-end="url(#ar2)"/>
+      <text class="lbl" x="285" y="72" text-anchor="middle">|ψ_ref − ψ| &gt; 5°</text>
+      <line class="wire" x1="415" y1="72" x2="213" y2="150" marker-end="url(#ar2)"/>
+      <text class="lbl" x="335" y="128" text-anchor="middle">|ψ_ref − ψ| &lt; 2°</text>
+
+      <line class="wire" x1="210" y1="172" x2="413" y2="240" marker-end="url(#ar2)"/>
+      <text class="lbl" x="300" y="226" text-anchor="middle">TTC &lt; T_crit</text>
+      <line class="wire" x1="500" y1="90" x2="500" y2="207" marker-end="url(#ar2)"/>
+      <text class="lbl" x="508" y="153">TTC &lt; T_crit</text>
+
+      <line class="wire" x1="585" y1="240" x2="788" y2="168" marker-end="url(#ar2)"/>
+      <text class="lbl" x="700" y="230" text-anchor="middle">clear or t &gt; T_back</text>
+
+      <path class="wire" d="M875,185 C875,330 125,330 125,188" marker-end="url(#ar2)"/>
+      <text class="lbl" x="500" y="314" text-anchor="middle">heading changed ≥ 60° and front clear</text>
+    </svg>
+    </div>
+    <figcaption><b>Fig. 2. behavior_node state machine.</b> ψ_ref comes from the arbiter in Fig. 4, and TTC from either range or camera looming. The 5° / 2° pair adds hysteresis so the robot doesn't chatter between forward and turn. Every transition takes effect at the next gait-phase zero crossing, not immediately.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <figure id="fig3">
+    <div class="scroll">
+    <svg viewBox="0 0 1080 120" role="img" aria-label="Command chain per actuator: gamma star, primitive modifier, smoother, waveform, clip at 15 volts, motor and spring model.">
+      <defs>
+        <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker>
+      </defs>
+      <rect class="box" x="10" y="20" width="150" height="80" rx="6"/>
+      <text class="t" x="85" y="50" text-anchor="middle">γ*</text>
+      <text class="s" x="85" y="72" text-anchor="middle">e₁…e₄, Ψ₂…Ψ₄, f</text>
+
+      <rect class="new" x="192" y="20" width="150" height="80" rx="6"/>
+      <text class="t" x="267" y="46" text-anchor="middle">Primitive</text>
+      <text class="s" x="267" y="67" text-anchor="middle">TURN: + b</text>
+      <text class="s" x="267" y="85" text-anchor="middle">BACK: Ψ → −Ψ</text>
+
+      <rect class="new" x="374" y="20" width="150" height="80" rx="6"/>
+      <text class="t" x="449" y="46" text-anchor="middle">Smoother</text>
+      <text class="s" x="449" y="67" text-anchor="middle">ramp b over 1 cycle</text>
+      <text class="s" x="449" y="85" text-anchor="middle">flip Ψ at phase 0</text>
+
+      <rect class="new" x="556" y="20" width="150" height="80" rx="6"/>
+      <text class="t" x="631" y="50" text-anchor="middle">Waveform</text>
+      <text class="s" x="631" y="72" text-anchor="middle">e·sin(2π(ft+Ψ)) + b</text>
+
+      <rect class="box" x="738" y="20" width="150" height="80" rx="6"/>
+      <text class="t" x="813" y="46" text-anchor="middle">Clip ±15 V</text>
+      <text class="s" x="813" y="67" text-anchor="middle">keep |b| ≤</text>
+      <text class="s" x="813" y="85" text-anchor="middle">15 − max eⱼ</text>
+
+      <rect class="box" x="920" y="20" width="150" height="80" rx="6"/>
+      <text class="t" x="995" y="46" text-anchor="middle">Motor + spring</text>
+      <text class="s" x="995" y="67" text-anchor="middle">(E − kω)·k/R</text>
+      <text class="s" x="995" y="85" text-anchor="middle">− K·θ</text>
+
+      <line class="wire" x1="160" y1="60" x2="189" y2="60" marker-end="url(#ar3)"/>
+      <line class="wire" x1="342" y1="60" x2="371" y2="60" marker-end="url(#ar3)"/>
+      <line class="wire" x1="524" y1="60" x2="553" y2="60" marker-end="url(#ar3)"/>
+      <line class="wire" x1="706" y1="60" x2="735" y2="60" marker-end="url(#ar3)"/>
+      <line class="wire" x1="888" y1="60" x2="917" y2="60" marker-end="url(#ar3)"/>
+    </svg>
+    </div>
+    <figcaption><b>Fig. 3. What happens to one actuator's command.</b> The first three stages run in gait_generator_node. The waveform, clip and motor model run inside actuator_plugin.cc on every 0.25 ms physics tick, so the sine stays smooth even though commands arrive at only 50 Hz.</figcaption>
+  </figure>
+</section>
+
+<section id="perception">
+  <div class="prose">
+    <div class="eyebrow">Sensor set: camera + range + IMU · head swing minimized</div>
+    <h2>Perception and steering</h2>
+    <p>With the head swing minimized, each sensor is used at its own rate. A moving average over exactly one stroke period (1/f) removes whatever swing is left. There is only one steering input, the bias voltage b. So range and camera never set b themselves. They propose a desired heading ψ_ref or ask for BACKWARD, a priority arbiter picks one, and a single IMU heading controller turns ψ_ref into b.</p>
+  </div>
+  <figure id="fig4">
+    <div class="scroll">
+    <svg viewBox="0 0 1120 500" role="img" aria-label="Sensing to steering pipeline: range and camera each go through estimation and a decision stage that proposes a heading or a backward request; a priority arbiter picks one; an IMU heading cascade turns the heading reference into bias voltage for the gait generator.">
+      <defs>
+        <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker>
+        <marker id="ar4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head a"/></marker>
+      </defs>
+      <text class="zt" x="20" y="24">SENSOR</text>
+      <text class="zt" x="200" y="24">ESTIMATION</text>
+      <text class="zt" x="490" y="24">DECISION</text>
+      <text class="zt" x="770" y="24">ARBITER</text>
+      <text class="zt" x="930" y="24">CONTROL</text>
+
+      <!-- range lane -->
+      <rect class="box" x="20" y="57" width="150" height="56" rx="6"/>
+      <text class="m" x="95" y="82" text-anchor="middle">/mubot/range</text>
+      <text class="s" x="95" y="101" text-anchor="middle">50 Hz, 5 beams</text>
+      <rect class="new" x="200" y="40" width="260" height="90" rx="6"/>
+      <text class="t" x="330" y="63" text-anchor="middle">Range estimation</text>
+      <text class="s" x="330" y="84" text-anchor="middle">3-sample median per beam</text>
+      <text class="s" x="330" y="102" text-anchor="middle">Kalman per sector: d, ḋ</text>
+      <text class="s" x="330" y="120" text-anchor="middle">polar histogram</text>
+      <rect class="new" x="490" y="40" width="250" height="90" rx="6"/>
+      <text class="t" x="615" y="63" text-anchor="middle">Avoidance</text>
+      <text class="s" x="615" y="84" text-anchor="middle">TTC = d / (−ḋ) &lt; T_crit → BACKWARD</text>
+      <text class="s" x="615" y="102" text-anchor="middle">VFH+: widest free gap near goal</text>
+      <text class="s" x="615" y="120" text-anchor="middle">→ ψ_ref (avoid)</text>
+      <line class="wire" x1="170" y1="85" x2="197" y2="85" marker-end="url(#ar4)"/>
+      <line class="wire" x1="460" y1="85" x2="487" y2="85" marker-end="url(#ar4)"/>
+
+      <!-- camera lane -->
+      <rect class="box" x="20" y="187" width="150" height="56" rx="6"/>
+      <text class="m" x="95" y="212" text-anchor="middle">/mubot/camera</text>
+      <text class="s" x="95" y="231" text-anchor="middle">15 Hz</text>
+      <rect class="new" x="200" y="170" width="260" height="90" rx="6"/>
+      <text class="t" x="330" y="193" text-anchor="middle">Vision estimation</text>
+      <text class="s" x="330" y="214" text-anchor="middle">HSV blob (sim) or ArUco (tank)</text>
+      <text class="s" x="330" y="232" text-anchor="middle">Kalman: θ, θ̇, d = fₓD / w</text>
+      <text class="s" x="330" y="250" text-anchor="middle">looming TTC = w / ẇ</text>
+      <rect class="new" x="490" y="170" width="250" height="90" rx="6"/>
+      <text class="t" x="615" y="193" text-anchor="middle">Target servoing</text>
+      <text class="s" x="615" y="214" text-anchor="middle">ψ_ref (target) = ψ + θ</text>
+      <text class="s" x="615" y="232" text-anchor="middle">slow down: k(d) scales all eⱼ</text>
+      <text class="s" x="615" y="250" text-anchor="middle">looming TTC backs up range</text>
+      <line class="wire" x1="170" y1="215" x2="197" y2="215" marker-end="url(#ar4)"/>
+      <line class="wire" x1="460" y1="215" x2="487" y2="215" marker-end="url(#ar4)"/>
+
+      <!-- arbiter -->
+      <rect class="new" x="770" y="40" width="130" height="220" rx="6"/>
+      <text class="t" x="835" y="64" text-anchor="middle">Priority</text>
+      <text class="s" x="784" y="96">1. BACKWARD</text>
+      <text class="s" x="800" y="113">(either TTC)</text>
+      <text class="s" x="784" y="140">2. ψ_ref avoid</text>
+      <text class="s" x="784" y="167">3. ψ_ref target</text>
+      <text class="s" x="784" y="194">4. hold last ψ</text>
+      <text class="s" x="784" y="232">first active wins</text>
+      <line class="wire" x1="740" y1="85" x2="767" y2="85" marker-end="url(#ar4)"/>
+      <line class="wire" x1="740" y1="215" x2="767" y2="215" marker-end="url(#ar4)"/>
+
+      <!-- control -->
+      <rect class="new" x="930" y="150" width="170" height="150" rx="6"/>
+      <text class="t" x="1015" y="174" text-anchor="middle">Heading cascade</text>
+      <text class="s" x="1015" y="200" text-anchor="middle">outer P:</text>
+      <text class="s" x="1015" y="217" text-anchor="middle">ψ_ref − ψ → r_ref</text>
+      <text class="s" x="1015" y="244" text-anchor="middle">inner PI:</text>
+      <text class="s" x="1015" y="261" text-anchor="middle">r_ref − r → b</text>
+      <text class="s" x="1015" y="285" text-anchor="middle">anti-windup ±b_max</text>
+      <line class="wire a" x1="900" y1="215" x2="927" y2="215" marker-end="url(#ar4a)"/>
+      <text class="lbl" x="913" y="207" text-anchor="middle">ψ_ref</text>
+
+      <rect class="box" x="930" y="400" width="170" height="70" rx="6"/>
+      <text class="t" x="1015" y="426" text-anchor="middle">gait_generator</text>
+      <text class="m" x="1015" y="448" text-anchor="middle">/mubot/primitive</text>
+      <line class="wire a" x1="1060" y1="300" x2="1060" y2="397" marker-end="url(#ar4a)"/>
+      <text class="lbl" x="1068" y="355">b</text>
+      <polyline class="wire a" points="835,260 835,435 927,435" marker-end="url(#ar4a)"/>
+      <text class="lbl" x="843" y="420">mode, k</text>
+
+      <!-- IMU lane -->
+      <rect class="box" x="20" y="407" width="150" height="56" rx="6"/>
+      <text class="m" x="95" y="432" text-anchor="middle">/mubot/imu</text>
+      <text class="s" x="95" y="451" text-anchor="middle">200 Hz</text>
+      <rect class="new" x="200" y="390" width="260" height="90" rx="6"/>
+      <text class="t" x="330" y="413" text-anchor="middle">Heading estimation</text>
+      <text class="s" x="330" y="434" text-anchor="middle">complementary filter, gyro bias</text>
+      <text class="s" x="330" y="452" text-anchor="middle">1/f moving average</text>
+      <text class="s" x="330" y="470" text-anchor="middle">→ heading ψ, yaw rate r</text>
+      <line class="wire" x1="170" y1="435" x2="197" y2="435" marker-end="url(#ar4)"/>
+      <polyline class="wire" points="330,390 330,340 980,340 980,303" marker-end="url(#ar4)"/>
+      <text class="lbl" x="700" y="332" text-anchor="middle">ψ, r feedback</text>
+      <line class="wire" x1="615" y1="340" x2="615" y2="263" marker-end="url(#ar4)"/>
+      <text class="lbl" x="623" y="300">ψ</text>
+    </svg>
+    </div>
+    <figcaption><b>Fig. 4. From sensors to bias voltage.</b> Range and camera only propose. The arbiter picks the highest-priority active request, and only the heading cascade writes b. The cascade, arbiter and behaviour state machine (Fig. 2) all live in behavior_node. perception_node holds the three estimation blocks.</figcaption>
+  </figure>
+
+  <div class="tablebox">
+    <table>
+      <thead><tr><th>Sensor</th><th>Estimation</th><th>Decision / controller</th><th>Produces</th></tr></thead>
+      <tbody>
+        <tr><td><b>IMU</b></td><td>Complementary filter on yaw, gyro-bias estimate while swimming straight, 1/f moving average on ψ and r</td><td><b>Cascaded heading controller.</b> Outer P gives a yaw-rate setpoint; inner PI gives b. Tune from a measured bias-step response (first order plus about one stroke of delay)</td><td>b, the only steering input</td></tr>
+        <tr><td><b>Range fan</b></td><td>3-sample median per beam, Kalman filter per sector on distance d and closing speed ḋ, polar histogram</td><td><b>Time to collision</b> d / (−ḋ) below T_crit, or d &lt; d_min, triggers BACKWARD. <b>VFH+</b> picks the free gap closest to the goal direction and sends it as ψ_ref. If everything is blocked, turn in place at fixed bias to scan</td><td>BACKWARD request, ψ_ref (avoid)</td></tr>
+        <tr><td><b>Camera</b></td><td>HSV blob in simulation, ArUco markers in a real tank. Constant-velocity Kalman filter on bearing θ and distance d. Looming TTC from image-width growth</td><td><b>Position-based visual servoing:</b> ψ_ref = ψ + θ. Approach speed control by scaling all amplitudes eⱼ with k(d). Looming TTC is a second trigger for BACKWARD, which covers objects the 5 beams miss</td><td>ψ_ref (target), k, BACKWARD request</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cols">
+    <div>
+      <h2>Code layout</h2>
+<pre class="tablebox" style="margin:0;padding:14px 16px;font:12.5px/1.55 var(--mono);white-space:pre">scripts/perception/
+  node.py           PerceptionNode: subscribers, publishers
+  heading.py        HeadingEstimator  (filter, bias, 1/f average)
+  channels/
+    base.py         Channel: update(t, msg) → detections
+    range.py        RangeChannel      (median, Kalman, histogram)
+    vision.py       VisionChannel     (blob/ArUco, Kalman, looming)
+scripts/behavior/
+  node.py           BehaviorNode: state machine, arbiter
+  vfh.py            VFH+ gap selection
+  heading_ctrl.py   HeadingCascade    (P outer, PI inner)
+config/perception.yaml, config/behavior.yaml</pre>
+      <p style="margin-top:12px">Estimation lives in perception_node and all decisions live in behavior_node. That lets you replay recorded sensor data through perception alone, or drive behaviour from synthetic detections.</p>
+    </div>
+    <div>
+      <h2>Parameters</h2>
+      <div class="tablebox">
+        <table style="min-width:0">
+          <thead><tr><th>Parameter</th><th>Start value</th></tr></thead>
+          <tbody>
+            <tr><td>Range: max used / d_min</td><td class="num">1.0 m / 0.08 m</td></tr>
+            <tr><td>TTC threshold T_crit</td><td class="num">1.5 s</td></tr>
+            <tr><td>VFH+ bins / gap width</td><td class="num">5° / body width + 2 cm</td></tr>
+            <tr><td>Target HSV range</td><td>red: H 0–10 or 170–180</td></tr>
+            <tr><td>Target diameter D</td><td class="num">0.05 m</td></tr>
+            <tr><td>Target lost after</td><td class="num">0.5 s unseen</td></tr>
+            <tr><td>Heading outer gain K_ψ</td><td class="num">from bias-step test</td></tr>
+            <tr><td>Rate limit r_max</td><td class="num">from bias-step test</td></tr>
+            <tr><td>Inner PI rate</td><td class="num">20 Hz</td></tr>
+            <tr><td>Bias limit b_max</td><td class="num">15 V − max eⱼ</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <h2>Design notes</h2>
+    <ul class="plain">
+      <li><b>One writer for b.</b> If range and camera each drove b, they would fight whenever an obstacle sits between the robot and the target. Sending everything through ψ_ref and one cascade avoids that.</li>
+      <li><b>Two independent collision triggers.</b> Range TTC is accurate but only covers 5 beams. Camera looming TTC covers the whole image but needs texture. Either one can request BACKWARD.</li>
+      <li><b>Keep the 1/f average.</b> Even a minimized head swing leaves some ripple at the stroke frequency. Averaging over exactly one period removes it with less lag than a general low-pass filter.</li>
+      <li><b>Use sim time everywhere.</b> The camera slows Gazebo below real time. Stamps must come from <code>/clock</code>, or the Kalman filters get wrong time steps.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="slam">
+  <div class="prose">
+    <div class="eyebrow">slam_node</div>
+    <h2>SLAM</h2>
+    <p>μBot swims in a plane at fixed depth, so SLAM only has to estimate x, y and heading. Its sensors are a 5-beam range fan, a small camera and an IMU, which rules out most off-the-shelf SLAM. The design that fits is <b>landmark pose-graph SLAM on ArUco markers</b>: markers on the tank walls give bearing and distance with a known identity, so matching observations to landmarks is free and loop closure happens whenever the robot sees a marker again. The range fan then fills in an occupancy grid using the optimized poses.</p>
+  </div>
+  <figure id="fig5">
+    <div class="scroll">
+    <svg viewBox="0 0 1120 270" role="img" aria-label="SLAM pipeline: EKF odometry and ArUco landmark detections go through a front end into a GTSAM pose-graph back end, which publishes the map to odom transform and the landmark map; range scans and optimized poses feed an occupancy grid mapper.">
+      <defs>
+        <marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker>
+      </defs>
+      <rect class="box" x="20" y="30" width="200" height="60" rx="6"/>
+      <text class="t" x="120" y="56" text-anchor="middle">EKF odometry</text>
+      <text class="s" x="120" y="76" text-anchor="middle">IMU ψ + gait speed</text>
+      <rect class="box" x="20" y="110" width="200" height="60" rx="6"/>
+      <text class="t" x="120" y="136" text-anchor="middle">ArUco detections</text>
+      <text class="s" x="120" y="156" text-anchor="middle">id, bearing θ, distance d</text>
+      <rect class="box" x="20" y="190" width="200" height="60" rx="6"/>
+      <text class="t" x="120" y="216" text-anchor="middle">Range scan</text>
+      <text class="s" x="120" y="236" text-anchor="middle">5 beams, 50 Hz</text>
+
+      <rect class="new" x="270" y="30" width="220" height="140" rx="6"/>
+      <text class="t" x="380" y="56" text-anchor="middle">Front end</text>
+      <text class="s" x="380" y="82" text-anchor="middle">new keyframe every 5 cm or 10°</text>
+      <text class="s" x="380" y="104" text-anchor="middle">associate by marker ID</text>
+      <text class="s" x="380" y="126" text-anchor="middle">reject d &gt; 0.8 m, blurred frames</text>
+      <text class="s" x="380" y="148" text-anchor="middle">odometry between keyframes</text>
+
+      <rect class="new" x="540" y="30" width="250" height="140" rx="6"/>
+      <text class="t" x="665" y="56" text-anchor="middle">Pose-graph back end</text>
+      <text class="s" x="665" y="82" text-anchor="middle">GTSAM iSAM2, poses in SE(2)</text>
+      <text class="s" x="665" y="104" text-anchor="middle">odometry factor: xₖ → xₖ₊₁</text>
+      <text class="s" x="665" y="126" text-anchor="middle">bearing-range factor: xₖ → lⱼ</text>
+      <text class="s" x="665" y="148" text-anchor="middle">re-seeing lⱼ closes the loop</text>
+
+      <rect class="new" x="540" y="190" width="250" height="60" rx="6"/>
+      <text class="t" x="665" y="216" text-anchor="middle">Occupancy mapper</text>
+      <text class="s" x="665" y="236" text-anchor="middle">log-odds ray casting, 1 cm cells</text>
+
+      <rect class="box" x="840" y="30" width="260" height="60" rx="6"/>
+      <text class="m" x="970" y="56" text-anchor="middle">/tf map → odom</text>
+      <text class="s" x="970" y="76" text-anchor="middle">corrects odometry drift</text>
+      <rect class="box" x="840" y="110" width="260" height="60" rx="6"/>
+      <text class="m" x="970" y="136" text-anchor="middle">/mubot/landmarks</text>
+      <text class="s" x="970" y="156" text-anchor="middle">marker positions + covariance</text>
+      <rect class="box" x="840" y="190" width="260" height="60" rx="6"/>
+      <text class="m" x="970" y="216" text-anchor="middle">/mubot/map</text>
+      <text class="s" x="970" y="236" text-anchor="middle">OccupancyGrid, 2 Hz</text>
+
+      <line class="wire" x1="220" y1="60" x2="267" y2="60" marker-end="url(#ar5)"/>
+      <line class="wire" x1="220" y1="140" x2="267" y2="140" marker-end="url(#ar5)"/>
+      <line class="wire" x1="490" y1="100" x2="537" y2="100" marker-end="url(#ar5)"/>
+      <line class="wire" x1="790" y1="60" x2="837" y2="60" marker-end="url(#ar5)"/>
+      <line class="wire" x1="790" y1="140" x2="837" y2="140" marker-end="url(#ar5)"/>
+      <line class="wire" x1="220" y1="220" x2="537" y2="220" marker-end="url(#ar5)"/>
+      <text class="lbl" x="380" y="212" text-anchor="middle">scan</text>
+      <line class="wire" x1="665" y1="170" x2="665" y2="187" marker-end="url(#ar5)"/>
+      <text class="lbl" x="673" y="183">poses</text>
+      <line class="wire" x1="790" y1="220" x2="837" y2="220" marker-end="url(#ar5)"/>
+    </svg>
+    </div>
+    <figcaption><b>Fig. 5. slam_node.</b> Landmarks pin down the pose graph; the range fan only builds the map. That split matters because 5 beams are far too sparse for scan matching, but they are enough to mark walls once the poses are known.</figcaption>
+  </figure>
+
+  <div class="tablebox">
+    <table>
+      <thead><tr><th>Approach</th><th>Fit for μBot</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><b>Landmark pose-graph SLAM</b> (ArUco + GTSAM, or the <code>fiducial_slam</code> package)</td><td><span class="tag new">use this</span></td><td>Works with a small camera and sparse range. Data association is free from marker IDs. Light enough to run alongside a slow Gazebo simulation.</td></tr>
+        <tr><td>2D laser SLAM (<code>slam_toolbox</code>, Cartographer, GMapping)</td><td><span class="tag">no</span></td><td>Scan matching needs hundreds of beams per scan. Five beams don't constrain the pose.</td></tr>
+        <tr><td>Visual-inertial SLAM (ORB-SLAM3 mono-inertial, VINS-Mono, OpenVINS)</td><td><span class="tag">later</span></td><td>Works without markers, but needs a textured scene, more compute, and an IMU that measures gravity. <code>mubot.world</code> sets gravity to 0, so the simulated accelerometer never sees it and initialization fails. Fix: turn world gravity on and switch it off per link in the URDF.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cols">
+    <div class="prose">
+      <h2>Odometry from the gait</h2>
+      <p>μBot has no wheels, so odometry comes from a speed model. Run the fixed policy at several amplitude scales k and both directions, read the true speed from <code>/mubot/odom</code>, and fit v = g(k, mode) as a lookup table. The EKF fuses that speed with the IMU heading. Expect position drift of several percent of distance swum. SLAM corrects it every time a marker comes back into view.</p>
+      <p>Turning also changes forward speed. Include bias b in the lookup table if turns are frequent.</p>
+    </div>
+    <div class="prose">
+      <h2>Setting up the tank</h2>
+      <ul class="plain">
+        <li>Put ArUco 4×4 markers on the walls, about 20 cm apart, so at least one is usually in view.</li>
+        <li>At 320 × 240 pixels, a 4 cm marker is detectable to roughly 0.8 m. At 160 × 120 the range halves, which is why the camera resolution was raised.</li>
+        <li>Add a few markers on obstacles too. They become landmarks and the map shows them.</li>
+        <li>Give walls and obstacles textures as well, so camera looming still works between markers.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Topics and messages</h2>
+  <div class="tablebox">
+  <table>
+    <thead><tr><th>Topic</th><th>Type</th><th>Rate</th><th>Publisher → subscriber</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4"><b>Sensors and simulator</b></td></tr>
+      <tr><td><code>/mubot/imu</code></td><td><code>sensor_msgs/Imu</code></td><td class="num">200 Hz</td><td>IMU plugin → perception</td></tr>
+      <tr><td><code>/mubot/range</code></td><td><code>sensor_msgs/LaserScan</code></td><td class="num">50 Hz</td><td>ray sensor → perception, SLAM mapper</td></tr>
+      <tr><td><code>/mubot/camera/image_raw</code></td><td><code>sensor_msgs/Image</code></td><td class="num">15 Hz</td><td>camera → perception</td></tr>
+      <tr><td><code>/mubot/camera/camera_info</code></td><td><code>sensor_msgs/CameraInfo</code></td><td class="num">15 Hz</td><td>camera → perception (fₓ, cₓ for bearing)</td></tr>
+      <tr><td><code>/joint_states</code></td><td><code>sensor_msgs/JointState</code></td><td class="num">100 Hz</td><td>gazebo_ros_control → robot_state_publisher</td></tr>
+      <tr><td><code>/tf</code>, <code>/tf_static</code></td><td><code>tf2_msgs/TFMessage</code></td><td class="num">varies</td><td>robot_state_publisher, state_estimator, slam_node → everyone</td></tr>
+      <tr><td><code>/mubot/odom</code></td><td><code>nav_msgs/Odometry</code></td><td class="num">100 Hz</td><td>p3d plugin → evaluation and speed-model fitting only</td></tr>
+      <tr><td><code>/clock</code></td><td><code>rosgraph_msgs/Clock</code></td><td class="num">sim</td><td>Gazebo → all nodes (<code>use_sim_time</code>)</td></tr>
+      <tr><td colspan="4"><b>Perception</b></td></tr>
+      <tr><td><code>/mubot/perception/heading</code></td><td><code>std_msgs/Float64</code></td><td class="num">200 Hz</td><td>perception → behavior, state_estimator</td></tr>
+      <tr><td><code>/mubot/perception/obstacles</code></td><td><code>mubot_msgs/ObstacleArray</code></td><td class="num">50 Hz</td><td>perception → behavior. Per sector: d, ḋ, TTC</td></tr>
+      <tr><td><code>/mubot/perception/target</code></td><td><code>mubot_msgs/Target</code></td><td class="num">15 Hz</td><td>perception → behavior. θ, d, looming TTC, visible</td></tr>
+      <tr><td><code>/mubot/perception/landmarks</code></td><td><code>mubot_msgs/LandmarkArray</code></td><td class="num">15 Hz</td><td>perception → slam_node. ArUco id, θ, d</td></tr>
+      <tr><td colspan="4"><b>Localization and SLAM</b></td></tr>
+      <tr><td><code>/mubot/odometry/filtered</code></td><td><code>nav_msgs/Odometry</code></td><td class="num">50 Hz</td><td>state_estimator → slam_node</td></tr>
+      <tr><td><code>/mubot/pose</code></td><td><code>geometry_msgs/PoseWithCovarianceStamped</code></td><td class="num">on keyframe</td><td>slam_node → behavior, mission</td></tr>
+      <tr><td><code>/mubot/landmarks</code></td><td><code>visualization_msgs/MarkerArray</code></td><td class="num">on update</td><td>slam_node → mission, RViz</td></tr>
+      <tr><td><code>/mubot/map</code></td><td><code>nav_msgs/OccupancyGrid</code></td><td class="num">2 Hz</td><td>slam_node → mission (exploration frontiers), RViz</td></tr>
+      <tr><td colspan="4"><b>Decision and control</b></td></tr>
+      <tr><td><code>/mubot/goal</code></td><td>action: <code>SeekTarget</code>, <code>Explore</code>, <code>ReturnHome</code></td><td class="num">on demand</td><td>mission → behavior, with feedback and result</td></tr>
+      <tr><td><code>/mubot/primitive</code></td><td><code>mubot_msgs/Primitive</code></td><td class="num">20 Hz</td><td>behavior → gait generator. mode, bias b, amplitude scale k</td></tr>
+      <tr><td><code>/mubot/primitive_override</code></td><td><code>mubot_msgs/Primitive</code></td><td class="num">on input</td><td>teleop → behavior (top priority)</td></tr>
+      <tr><td><code>/mubot/gait_cmd</code></td><td><code>mubot_msgs/GaitCmd</code></td><td class="num">50 Hz</td><td>gait generator → actuator plugin. e[4], Ψ[4], f, b, switch_at_phase</td></tr>
+      <tr><td><code>/mubot/gait_state</code></td><td><code>mubot_msgs/GaitState</code></td><td class="num">50 Hz</td><td>gait generator → state_estimator. f, k, b, mode</td></tr>
+      <tr><td colspan="4"><b>Safety and monitoring</b></td></tr>
+      <tr><td><code>/mubot/estop</code></td><td><code>std_msgs/Bool</code></td><td class="num">latched</td><td>supervisor or operator → actuator plugin</td></tr>
+      <tr><td><code>/mubot/actuator_state</code></td><td><code>mubot_msgs/ActuatorState</code></td><td class="num">50 Hz</td><td>actuator plugin → supervisor, logging. voltage, clip flag, power</td></tr>
+      <tr><td><code>/diagnostics</code></td><td><code>diagnostic_msgs/DiagnosticArray</code></td><td class="num">1 Hz</td><td>all nodes → diagnostic_aggregator, supervisor</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Timing</h2>
+  <div class="cols">
+    <div class="prose">
+      <p>The physics and the waveform run at 4 kHz inside Gazebo. Each sensor is processed at its own rate. The heading cascade runs at 20 Hz, which is already faster than a bias change can act. SLAM runs on keyframes rather than a clock, so its cost scales with distance swum, not with time.</p>
+      <p>The watchdog timeout (200 ms) is ten command periods. One late message never trips it, but a crashed node does.</p>
+    </div>
+    <div class="tablebox">
+      <table style="min-width:0">
+        <thead><tr><th>Loop</th><th>Rate</th><th>Runs in</th></tr></thead>
+        <tbody>
+          <tr><td>Physics, hydro, waveform</td><td class="num">4 kHz</td><td>Gazebo plugins</td></tr>
+          <tr><td>IMU / range / camera</td><td class="num">200 / 50 / 15 Hz</td><td>perception_node</td></tr>
+          <tr><td>Gait command stream</td><td class="num">50 Hz</td><td>gait_generator_node</td></tr>
+          <tr><td>EKF odometry</td><td class="num">50 Hz</td><td>state_estimator</td></tr>
+          <tr><td>Arbiter + heading cascade</td><td class="num">20 Hz</td><td>behavior_node</td></tr>
+          <tr><td>SLAM keyframes</td><td class="num">every 5 cm or 10°</td><td>slam_node</td></tr>
+          <tr><td>Occupancy grid</td><td class="num">2 Hz</td><td>slam_node</td></tr>
+          <tr><td>Command watchdog</td><td class="num">200 ms timeout</td><td>actuator plugin</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Files</h2>
+  <div class="tablebox">
+  <table>
+    <thead><tr><th>File</th><th>Status</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>scripts/perception/</code></td><td><span class="tag new">new</span></td><td>Heading filter, range channel, vision channel (blob, ArUco landmarks, looming).</td></tr>
+      <tr><td><code>scripts/behavior/</code></td><td><span class="tag new">new</span></td><td>State machine, arbiter with teleop override, VFH+, heading cascade, goal → ψ_ref from map pose.</td></tr>
+      <tr><td><code>scripts/gait_generator_node.py</code></td><td><span class="tag new">new</span></td><td>Loads γ*, applies primitive and amplitude scale, ramps bias, schedules phase flips; publishes GaitCmd and GaitState.</td></tr>
+      <tr><td><code>scripts/slam/</code></td><td><span class="tag new">new</span></td><td>Front end, GTSAM pose graph, occupancy mapper, map → odom broadcaster.</td></tr>
+      <tr><td><code>scripts/mission_node.py</code></td><td><span class="tag new">new</span></td><td>Action servers for SeekTarget, Explore (frontiers on the grid) and ReturnHome.</td></tr>
+      <tr><td><code>scripts/supervisor_node.py</code>, <code>scripts/teleop_node.py</code></td><td><span class="tag new">new</span></td><td>Mode switching, heartbeats, e-stop; manual primitive override.</td></tr>
+      <tr><td><code>config/ekf.yaml</code></td><td><span class="tag new">new</span></td><td>robot_localization in 2D mode: IMU yaw + gait-speed twist.</td></tr>
+      <tr><td><code>config/speed_model.yaml</code></td><td><span class="tag new">new</span></td><td>Speed lookup v = g(k, b, mode), fitted from ground-truth runs.</td></tr>
+      <tr><td><code>config/gamma_star.yaml</code>, <code>perception.yaml</code>, <code>behavior.yaml</code>, <code>slam.yaml</code></td><td><span class="tag new">new</span></td><td>Policy and per-node settings.</td></tr>
+      <tr><td><code>msg/</code>, <code>action/</code></td><td><span class="tag new">new</span></td><td>GaitCmd, GaitState, Primitive, ObstacleArray, Target, LandmarkArray, ActuatorState; SeekTarget, Explore, ReturnHome.</td></tr>
+      <tr><td><code>urdf/AR2_AN4_ADD_V3_sensors.urdf</code></td><td><span class="tag new">new</span></td><td>AN4 model plus sensor blocks and named sensor frames for TF.</td></tr>
+      <tr><td><code>worlds/mubot_tank.world</code></td><td><span class="tag new">new</span></td><td>Textured walls with ArUco markers, obstacles, a target.</td></tr>
+      <tr><td><code>launch/deploy.launch</code>, <code>launch/teleop.launch</code>, <code>rviz/mubot.rviz</code></td><td><span class="tag new">new</span></td><td>Full stack, manual-test stack, visualization.</td></tr>
+      <tr><td><code>actuator_plugin.cc</code></td><td><span class="tag">modified</span></td><td>NoA = 4, bias, GaitCmd subscriber, 200 ms watchdog, e-stop, ActuatorState publisher, command source switch.</td></tr>
+      <tr><td><code>Hydro_plugin.cc</code></td><td><span class="tag">modified</span></td><td>NoA = 4 only.</td></tr>
+      <tr><td><code>CMakeLists.txt</code>, <code>package.xml</code></td><td><span class="tag">modified</span></td><td>Messages, actions, and dependencies: sensor_msgs, cv_bridge, robot_localization, robot_state_publisher, gtsam, diagnostic_updater.</td></tr>
+      <tr><td>Training scripts</td><td><span class="tag">unchanged</span></td><td>Still produce γ* through the CSV file bus.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="cols">
+  <div>
+    <h2>Build order</h2>
+    <ol class="steps">
+      <li><b>Safe plumbing.</b> Actuator plugin with ROS subscriber, bias, watchdog and e-stop; TF from robot_state_publisher; teleop. Drive the primitives by hand.</li>
+      <li><b>Heading hold.</b> Measure the bias-step response, then tune the heading cascade.</li>
+      <li><b>Speed model and EKF.</b> Fit v = g(k, b, mode) from ground truth, run the EKF, and check drift against <code>/mubot/odom</code>.</li>
+      <li><b>Target seeking.</b> Camera, blob detection, visual servoing.</li>
+      <li><b>Obstacle avoidance.</b> Range TTC, VFH+, arbiter, camera looming.</li>
+      <li><b>SLAM.</b> ArUco landmarks, pose graph, then the occupancy grid. Validate against ground truth.</li>
+      <li><b>Missions.</b> ReturnHome first (needs only the pose), then Explore (needs the grid), then SeekTarget with search.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Risks to check early</h2>
+    <ul class="plain">
+      <li>About 0.2° of steady bend per volt of bias per joint at K = 3.75e-3. Measure turn rate before tuning anything that steers.</li>
+      <li>Bias eats amplitude headroom under the ±15 V clip.</li>
+      <li>The camera now runs at 320 × 240 for marker range, which slows Gazebo further. Measure the real-time factor early.</li>
+      <li>Gait odometry drifts. If markers are out of view for long stretches, the pose and the map degrade together.</li>
+      <li>World gravity is 0, so the simulated IMU never measures gravity. Fine for the EKF and landmark SLAM; blocks visual-inertial SLAM.</li>
+      <li>Infrared range sensors reach only a few centimetres underwater. A real range fan means small ultrasonic sonar.</li>
+      <li>The repo is ROS 1 and Gazebo Classic, both past end of life. Porting to ROS 2 before building this stack is cheaper than after.</li>
+    </ul>
+  </div>
+</section>
+
+</div>

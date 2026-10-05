@@ -1,0 +1,7 @@
+uint8 TRAIN=0
+uint8 DEPLOY=1
+uint8 TELEOP=2
+uint8 mode
+---
+bool success
+string message

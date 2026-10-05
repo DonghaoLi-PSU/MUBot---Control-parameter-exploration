@@ -1,0 +1,6 @@
+# EPHE settings from the paper (same as legacy config/em_pgpe.yaml).
+n_rollout: 50        # rollouts per episode
+n_episodes: 40       # policy updates per trial
+select: 25           # best rollouts used for each update
+rollout_time: 6.1    # simulated seconds per rollout
+reward_window: [4.0, 6.0]   # mean forward CoG speed over this interval [s]

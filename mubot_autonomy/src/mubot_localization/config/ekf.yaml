@@ -1,0 +1,23 @@
+# robot_localization ekf_node, 2D mode.
+# Inputs: IMU yaw and yaw rate; body speed from gait_odometry.
+ekf_filter_node:
+  ros__parameters:
+    use_sim_time: true
+    frequency: 50.0
+    two_d_mode: true
+    publish_tf: true
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: segment_head
+    world_frame: odom
+
+    imu0: /mubot/imu
+    #          x     y     z     roll  pitch yaw   vx    vy    vz    vroll vpitch vyaw  ax    ay    az
+    imu0_config: [false, false, false, false, false, true, false, false, false, false, false, true, false, false, false]
+    imu0_differential: false
+    imu0_remove_gravitational_acceleration: false   # world gravity is 0
+
+    twist0: /mubot/gait_odometry/twist
+    twist0_config: [false, false, false, false, false, false, true, true, false, false, false, false, false, false, false]
+
+    # remap the output in launch: odometry/filtered -> /mubot/odometry/filtered
