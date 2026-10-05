@@ -1,5 +1,9 @@
 # System architecture
 
+![Autonomy flowchart](figures/autonomy_flowchart.png)
+
+Source: `figures/autonomy_flowchart.svg`, drawn by `tools/draw_autonomy_flowchart.py`.
+
 Rendered versions with diagrams: `html/ros2_architecture.html` (this design)
 and `html/ros1_full_stack.html` (the same design described on ROS 1).
 
