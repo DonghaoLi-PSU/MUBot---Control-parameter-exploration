@@ -11,9 +11,9 @@ That work optimized a forward-swimming gait in simulation. This project extends
 it into an autonomous robot that senses its surroundings, knows where it is, and
 swims to goals. It is built on **ROS 2 Jazzy + Gazebo Harmonic**.
 
-This folder is self-contained. The original ROS 1 code stays in the repository
-root under `source code/` and is used only as the reproduction baseline
-(see `legacy/README.md`).
+This project is self-contained. The original ROS 1 code lives in
+[MUBot---Control-parameter-exploration](https://github.com/DonghaoLi-PSU/MUBot---Control-parameter-exploration) (folder `source code/`) and is
+used only as the reproduction baseline (see `legacy/README.md`).
 
 ## Reference case
 
@@ -42,7 +42,7 @@ Voltages are clipped to ±15 V, so the usable bias is |b| ≤ 15 − max e_j.
 
 ```
 docs/          architecture, design decisions, setup guides, the paper
-legacy/        pointer to the ROS 1 baseline in ../source code
+legacy/        pointer to the ROS 1 baseline repository
 tools/         offline scripts: baseline comparison, speed-model fit, plots
 docker/        Jazzy + Harmonic development image
 ci/            CI workflow (move to .github/workflows/ if this becomes its own repo)

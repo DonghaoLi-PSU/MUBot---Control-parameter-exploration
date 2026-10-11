@@ -1,7 +1,8 @@
 # Legacy ROS 1 baseline
 
-The original ROS 1 (catkin) + Gazebo Classic code lives in the repository root
-at `../source code/` and is not copied here. It is the reference implementation
+The original ROS 1 (catkin) + Gazebo Classic code lives in
+https://github.com/DonghaoLi-PSU/MUBot---Control-parameter-exploration
+(folder `source code/`) and is not copied here. It is the reference implementation
 the port must reproduce.
 
 | Legacy file | Replaced by |
